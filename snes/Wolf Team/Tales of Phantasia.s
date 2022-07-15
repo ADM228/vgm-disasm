@@ -925,8 +925,8 @@
 0f79: 3f 67 11  call  $1167
 0f7c: da e4     movw  $e4,ya
 0f7e: ba e4     movw  ya,$e4
-0f80: d4 03     mov   $03+x,a
-0f82: db 04     mov   $04+x,y
+0f80: d4 03     mov   $03+x,a   ;Channel volume (left)
+0f82: db 04     mov   $04+x,y   ;Channel volume (right)
 0f84: 3f de 11  call  $11de
 0f87: 7d        mov   a,x
 0f88: 60        clrc
@@ -1287,69 +1287,68 @@
 11dc: ee        pop   y
 11dd: 6f        ret
 
-11de: f4 01     mov   a,$01+x
-11e0: 68 0e     cmp   a,#$0e
-11e2: 90 05     bcc   $11e9
-11e4: e8 ff     mov   a,#$ff
-11e6: 5f 01 12  jmp   $1201
-
-11e9: 8d 00     mov   y,#$00
-11eb: f4 07     mov   a,$07+x
-11ed: 80        setc
-11ee: a8 18     sbc   a,#$18
-11f0: 90 0c     bcc   $11fe
-11f2: 4d        push  x
-11f3: cd 03     mov   x,#$03
-11f5: 9e        div   ya,x
-11f6: ce        pop   x
-11f7: fd        mov   y,a
-11f8: ad 20     cmp   y,#$20
-11fa: 90 02     bcc   $11fe
-11fc: 8d 20     mov   y,#$20
-11fe: f6 c0 01  mov   a,$01c0+y
-1201: fb 06     mov   y,$06+x
-1203: cf        mul   ya
-1204: f4 05     mov   a,$05+x
-1206: cf        mul   ya
-1207: cb e2     mov   $e2,y
-1209: e6        mov   a,(x)
-120a: c4 e3     mov   $e3,a
-120c: f4 04     mov   a,$04+x
-120e: cf        mul   ya
-120f: cb e6     mov   $e6,y
-1211: dd        mov   a,y
-1212: 5c        lsr   a
-1213: 23 80 09  bbs1  $80,$121f
-1216: 63 80 06  bbs3  $80,$121f
-1219: b3 e3 03  bbc5  $e3,$121f
-121c: 48 ff     eor   a,#$ff
-121e: bc        inc   a
+11de: f4 01     mov   a,$01+x   ;\ _
+11e0: 68 0e     cmp   a,#$0e    ; |
+11e2: 90 05     bcc   $11e9     ; | 
+11e4: e8 ff     mov   a,#$ff    ; |
+11e6: 5f 01 12  jmp   $1201     ; |
+11e9: 8d 00     mov   y,#$00    ; |
+11eb: f4 07     mov   a,$07+x   ; | if p1 < #$0e:
+11ed: 80        setc            ; |     a = $#ff
+11ee: a8 18     sbc   a,#$18    ; | else if p7 is divisible by 3 (p7/3 == p7//3) or p7 < #$18: 
+11f0: 90 0c     bcc   $11fe     ; |     a = $01c0 ($#ff?)
+11f2: 4d        push  x         ; | else:
+11f3: cd 03     mov   x,#$03    ; |     a = $01e0 ($#bf?)
+11f5: 9e        div   ya,x      ; |
+11f6: ce        pop   x         ; |
+11f7: fd        mov   y,a       ; |
+11f8: ad 20     cmp   y,#$20    ; |
+11fa: 90 02     bcc   $11fe     ; |
+11fc: 8d 20     mov   y,#$20    ; |_
+11fe: f6 c0 01  mov   a,$01c0+y ;/
+1201: fb 06     mov   y,$06+x   ;\ _
+1203: cf        mul   ya        ; |
+1204: f4 05     mov   a,$05+x   ; | $e2 = p6 * p5 * a
+1206: cf        mul   ya        ; |_
+1207: cb e2     mov   $e2,y     ;/
+1209: e6        mov   a,(x)     ;\_ $e3 = (x)
+120a: c4 e3     mov   $e3,a     ;/
+120c: f4 04     mov   a,$04+x   ; \ _
+120e: cf        mul   ya        ; |_$e6 = p4 * $e2
+120f: cb e6     mov   $e6,y     ;/
+1211: dd        mov   a,y       ;\_ VOL(R) = $e6 / 2
+1212: 5c        lsr   a         ;/
+1213: 23 80 09  bbs1  $80,$121f ;\ _
+1216: 63 80 06  bbs3  $80,$121f ; | if $80.1 is clear or $80.3 is clear or $e3.5 is set:
+1219: b3 e3 03  bbc5  $e3,$121f ; |     VOL(R) = (!VOL(R) + 1) 
+121c: 48 ff     eor   a,#$ff    ; |_
+121e: bc        inc   a         ;/
 121f: 2d        push  a
-1220: eb e2     mov   y,$e2
-1222: f4 03     mov   a,$03+x
-1224: cf        mul   ya
-1225: cb e7     mov   $e7,y
-1227: dd        mov   a,y
-1228: 5c        lsr   a
-1229: 23 80 09  bbs1  $80,$1235
-122c: 63 80 06  bbs3  $80,$1235
-122f: d3 e3 03  bbc6  $e3,$1235
-1232: 48 ff     eor   a,#$ff
-1234: bc        inc   a
+1220: eb e2     mov   y,$e2     ;\ _
+1222: f4 03     mov   a,$03+x   ; | $e7 = $e2 * p3
+1224: cf        mul   ya        ; |_
+1225: cb e7     mov   $e7,y     ;/
+1227: dd        mov   a,y       ;\_ VOL(L) = $e7 / 2
+1228: 5c        lsr   a         ;/
+1229: 23 80 09  bbs1  $80,$1235 ;\ _
+122c: 63 80 06  bbs3  $80,$1235 ; | if $80.1 is clear or $80.3 is clear or $e3.6 is set: 
+122f: d3 e3 03  bbc6  $e3,$1235 ; |     VOL(L) = (!VOL(L)+1)
+1232: 48 ff     eor   a,#$ff    ; |_
+1234: bc        inc   a         ;/
 1235: ee        pop   y
-1236: d4 0b     mov   $0b+x,a
-1238: db 0c     mov   $0c+x,y
-123a: d8 f2     mov   $f2,x
-123c: c4 f3     mov   $f3,a             ; VOL(L)
-123e: 3d        inc   x
-123f: d8 f2     mov   $f2,x
-1241: cb f3     mov   $f3,y             ; VOL(R)
-1243: 1d        dec   x
-1244: e4 e6     mov   a,$e6
-1246: 60        clrc
-1247: 84 e7     adc   a,$e7
-1249: 7c        ror   a
-124a: d4 0d     mov   $0d+x,a
+1236: d4 0b     mov   $0b+x,a   ;\ _
+1238: db 0c     mov   $0c+x,y   ; | p11 = VOL(L) 
+123a: d8 f2     mov   $f2,x     ; | p12 = VOL(R)
+123c: c4 f3     mov   $f3,a     ; |
+123e: 3d        inc   x         ; |
+123f: d8 f2     mov   $f2,x     ; | write VOL(L) to DSP
+1241: cb f3     mov   $f3,y     ; |_write VOL(R) to DSP
+1243: 1d        dec   x         ;/
+1244: e4 e6     mov   a,$e6     ;\ _
+1246: 60        clrc            ; |
+1247: 84 e7     adc   a,$e7     ; | p13 = ($e6 + $e7) / 2
+1249: 7c        ror   a         ; |_
+124a: d4 0d     mov   $0d+x,a   ;/
 124c: 4d        push  x
 124d: 3f 15 21  call  $2115
 1250: ce        pop   x
@@ -3324,14 +3323,14 @@
 2111: dw $206d
 2113: dw $1f10
 
-2115: e4 f4     mov   a,$f4
-2117: 64 f4     cmp   a,$f4
-2119: d0 fa     bne   $2115
-211b: 44 83     eor   a,$83
-211d: 30 01     bmi   $2120
-211f: 6f        ret
-
-2120: 28 7f     and   a,#$7f
+2115: e4 f4     mov   a,$f4     ;\
+2117: 64 f4     cmp   a,$f4     ; | read Port 1 (safely)
+2119: d0 fa     bne   $2115     ;/
+211b: 44 83     eor   a,$83     ;-- #%1000 0011
+211d: 30 01     bmi   $2120     ;\_ if a = (#$00..#$7f):
+211f: 6f        ret             ; |
+                                ; |
+2120: 28 7f     and   a,#$7f    ; |
 2122: 5d        mov   x,a
 2123: f5 31 21  mov   a,$2131+x
 2126: f0 f7     beq   $211f
